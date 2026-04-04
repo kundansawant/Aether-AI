@@ -176,12 +176,12 @@ export default function ChatHub({ session }: { session: any }) {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-[#0d0d0d] overflow-x-hidden text-[15px]">
+    <div className="flex flex-col h-screen bg-[#0d0d0d] overflow-hidden text-[15px]">
       <Navbar />
       <main className="flex-1 flex flex-col pt-20 overflow-y-auto custom-scrollbar">
-        <div ref={scrollContainerRef} className="flex-1 px-6 py-10 relative">
+        <div ref={scrollContainerRef} className="flex-1 px-6 py-6 relative">
           {messages.length === 0 ? (
-            <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in zoom-in duration-700">
+            <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in zoom-in duration-700">
               <div className="h-16 w-16 bg-white/5 rounded-[2rem] border border-white/5 flex items-center justify-center text-zinc-700 shadow-inner">
                 <MessageSquare size={32} />
               </div>
@@ -237,13 +237,13 @@ export default function ChatHub({ session }: { session: any }) {
           )}
         </div>
 
-        <div className="flex-shrink-0 pb-10 pt-4 px-6 bg-gradient-to-t from-[#0d0d0d] via-[#0d0d0d] to-transparent">
+        <div className="flex-shrink-0 pb-8 pt-2 px-6 bg-gradient-to-t from-[#0d0d0d] via-[#0d0d0d] to-transparent">
           <div className="max-w-3xl mx-auto space-y-4">
             <div className="relative bg-zinc-900/40 backdrop-blur-3xl border border-white/5 rounded-[2rem] shadow-2xl transition-all focus-within:border-primary/20 group">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center">
                 <button 
                   onClick={() => setIsPrivate(!isPrivate)}
-                  className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${isPrivate ? "bg-amber-400 text-black shadow-[0_20px_rgba(251,191,36,0.3)]" : "bg-white/5 text-zinc-500 hover:text-white"}`}
+                  className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${isPrivate ? "bg-amber-400 text-black shadow-lg shadow-amber-400/20" : "bg-white/5 text-zinc-500 hover:text-white"}`}
                 >
                   <Lock size={18} />
                 </button>
