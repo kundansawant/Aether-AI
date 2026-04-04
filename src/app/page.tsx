@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
@@ -32,7 +32,7 @@ import { Skeleton, EmptyState } from "@/components/ui-states";
 import { Navbar } from "@/components/navbar";
 import { supabase } from "@/lib/supabase";
 
-export default function ChatPage() {
+function ChatContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const modelId = searchParams.get("model") || "minimax/minimax-m2.5:free";
@@ -59,7 +59,6 @@ export default function ChatPage() {
     }
   };
 
-  // Function to fetch recent inference logs from the cloud
   const fetchLogs = async () => {
     try {
       const { data, error } = await supabase
@@ -80,21 +79,17 @@ export default function ChatPage() {
   }, [messages, isRunning]);
 
   useEffect(() => {
-    // 1. Session Protection check
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push("/auth");
         return;
       }
-      
-      // 2. Fetch initial logs
       fetchLogs();
     };
     
     checkUser();
 
-    // Node state recovery
     const savedActive = localStorage.getItem("aether_node_active") === "true";
     const savedId = localStorage.getItem("aether_node_id");
     if (savedActive && savedId) {
@@ -114,10 +109,8 @@ export default function ChatPage() {
 
   const handleRun = async () => {
     if (!input || !model) return;
-    
     const userMessage = { role: "user", content: input };
     setMessages(prev => [...prev, userMessage]);
-    
     const currentInput = input;
     const currentRemoteId = model.remoteId;
     setInput("");
@@ -130,15 +123,10 @@ export default function ChatPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ modelId: currentRemoteId, input: currentInput, isPrivate })
       });
-
       const data = await response.json();
-      
       if (data.answer) {
         setStatus("Generating ZK-Proof...");
-        
-        // Refresh the global audit trail from the server-side log
         setTimeout(fetchLogs, 1000); 
-
         const aiMessage = { 
           role: "ai", 
           content: data.answer,
@@ -156,7 +144,6 @@ export default function ChatPage() {
         setMessages(prev => [...prev, { role: "ai", content: `Error: ${data.error || "Execution failed"}`, isError: true }]);
         setStatus("Execution failed");
       }
-
     } catch (err) {
       setMessages(prev => [...prev, { role: "ai", content: "Error: Connection failed. Check your network.", isError: true }]);
       setStatus("Connection error");
@@ -167,9 +154,7 @@ export default function ChatPage() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setInput((prev) => (prev ? prev + " " : "") + `[Attach: ${file.name}]`);
-    }
+    if (file) setInput((prev) => (prev ? prev + " " : "") + `[Attach: ${file.name}]`);
   };
 
   const [showProofModal, setShowProofModal] = useState(false);
@@ -187,13 +172,8 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-screen bg-[#0d0d0d] overflow-x-hidden text-[15px]">
       <Navbar />
-
       <main className="flex-1 flex flex-col pt-20 overflow-y-auto custom-scrollbar">
-        {/* Chat Area */}
-        <div 
-          ref={scrollContainerRef}
-          className="flex-1 px-6 py-10 relative"
-        >
+        <div ref={scrollContainerRef} className="flex-1 px-6 py-10 relative">
           {messages.length === 0 ? (
             <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in zoom-in duration-700">
               <div className="h-16 w-16 bg-white/5 rounded-[2rem] border border-white/5 flex items-center justify-center text-zinc-700 shadow-inner">
@@ -251,7 +231,6 @@ export default function ChatPage() {
           )}
         </div>
 
-        {/* Input Bar Area */}
         <div className="flex-shrink-0 pb-10 pt-4 px-6 bg-gradient-to-t from-[#0d0d0d] via-[#0d0d0d] to-transparent">
           <div className="max-w-3xl mx-auto space-y-4">
             <div className="relative bg-zinc-900/40 backdrop-blur-3xl border border-white/5 rounded-[2rem] shadow-2xl transition-all focus-within:border-primary/20 group">
@@ -283,7 +262,6 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Verifiable Audit Trail Section */}
         {logs.length > 0 && (
           <div className="max-w-4xl mx-auto w-full px-6 py-20 border-t border-white/5 space-y-10">
             <div className="flex items-center justify-between">
@@ -298,7 +276,6 @@ export default function ChatPage() {
                 <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Network Live</span>
               </div>
             </div>
-
             <div className="grid grid-cols-1 gap-4 pb-20">
               {logs.map((log) => (
                 <div key={log.id} className="group flex items-center gap-6 p-6 bg-zinc-900/20 border border-white/5 rounded-3xl hover:bg-zinc-900/40 hover:border-white/10 transition-all duration-300">
@@ -334,7 +311,6 @@ export default function ChatPage() {
         )}
       </main>
 
-      {/* Proof Modal */}
       {showProofModal && selectedProof && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/90 backdrop-blur-2xl">
           <div className="absolute inset-0" onClick={() => setShowProofModal(false)}></div>
@@ -358,5 +334,17 @@ export default function ChatPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center">
+        <Loader2 className="animate-spin text-amber-400" size={48} />
+      </div>
+    }>
+      <ChatContent />
+    </Suspense>
   );
 }
