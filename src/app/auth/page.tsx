@@ -36,10 +36,12 @@ export default function AuthPage() {
       
       if (isLogin) {
         const result = await signInAction(formData);
+        if (!result) throw new Error("Secure Node Communication Interrupted.");
         if (!result.success) throw new Error(result.error);
         window.location.href = "/";
       } else {
         const result = await signUpAction(formData);
+        if (!result) throw new Error("Initialize Identity Request Delayed.");
         if (!result.success) throw new Error(result.error);
         
         // If Supabase confirmation is OFF, the user is joined instantly.

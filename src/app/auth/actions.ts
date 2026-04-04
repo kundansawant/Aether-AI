@@ -9,29 +9,36 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function signUpAction(formData: any) {
-  const { email, password, origin } = formData;
-  
-  // Note: For this to work instantly, you MUST disable "Confirm Email" in Supabase Auth Settings.
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: `${origin}/auth/callback`,
-    },
-  });
+  try {
+    const { email, password, origin } = formData;
+    
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${origin}/auth/callback`,
+      },
+    });
 
-  if (error) return { success: false, error: error.message };
-  return { success: true, data };
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: "Node Identity Initialization Failed: " + (err.message || "Unknown Error") };
+  }
 }
 
 export async function signInAction(formData: any) {
-  const { email, password } = formData;
-  
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  try {
+    const { email, password } = formData;
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  if (error) return { success: false, error: error.message };
-  return { success: true, data };
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: "Node Authentication Refused: " + (err.message || "Unknown Error") };
+  }
 }
