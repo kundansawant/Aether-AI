@@ -1,0 +1,77 @@
+import { bytes, Witness, Ledger, Contract, PubKey, Uint256, Value } from '@midnight-ntwrk/compact-runtime';
+
+/**
+ * Privacy-Preserving AI Inference Marketplace
+ * Built on Midnight Network.
+ */
+export const marketplace = {
+  state: {
+    // Registered Models: ID -> { Provider, Fee, MetadataCID }
+    models: Ledger<{ [id: string]: { provider: PubKey, fee: Uint256, metadata: bytes } }>,
+    
+    // Active Requests: ID -> { User, ModelID, EscrowedAmount, Status, InputCommitment }
+    requests: Ledger<{ [id: string]: { 
+      user: PubKey, 
+      modelId: string, 
+      amount: Uint256, 
+      status: 'PENDING' | 'COMPLETED' | 'REFUNDED', 
+      commitment: bytes 
+    } }>,
+  },
+
+  circuits: {
+    /**
+     * Verifies an ezkl ZK-proof against a commitment.
+     * This is an abstract representation of the ZKML verification logic.
+     */
+    verifyZkInference(proof: bytes, commitment: bytes, result: bytes): Witness<boolean> {
+      // In a real Midnight contract, this would involve proof verification logic
+      // tailored to the ezkl verification key stored in the contract state.
+      return true; 
+    }
+  },
+
+  transitions: {
+    /**
+     * Providers register their models on-chain.
+     */
+    registerModel(modelId: string, fee: Uint256, metadata: bytes) {
+      this.state.models[modelId] = { 
+        provider: this.context.transaction.sender, 
+        fee, 
+        metadata 
+      };
+    },
+
+    /**
+     * Users submit an inference request by locking the fee in escrow.
+     */
+    submitRequest(modelId: string, commitment: bytes) {
+      const model = this.state.models[modelId];
+      // require(this.context.transaction.value >= model.fee); // Simplified value check
+      
+      const requestId = bytes.toHex(this.context.transaction.hash);
+      this.state.requests[requestId] = {
+        user: this.context.transaction.sender,
+        modelId,
+        amount: model.fee,
+        status: 'PENDING',
+        commitment
+      };
+    },
+
+    /**
+     * Completed by the AI Agent/Provider submitting the proof.
+     */
+    completeInference(requestId: string, proof: bytes, result: bytes) {
+      const request = this.state.requests[requestId];
+      const model = this.state.models[request.modelId];
+      
+      if (this.circuits.verifyZkInference(proof, request.commitment, result)) {
+        request.status = 'COMPLETED';
+        // Transfer escrowed amount to model provider
+        // this.transfer(model.provider, request.amount); 
+      }
+    }
+  }
+};
