@@ -10,16 +10,19 @@ import {
   ChevronRight, 
   ArrowLeft,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Hash
 } from "lucide-react";
 import Link from "next/link";
-import { signInAction, signUpAction } from "./actions";
+import { signInAction, signUpAction, verifyOtpAction } from "./actions";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -42,6 +45,7 @@ export default function AuthPage() {
         const result = await signUpAction(formData);
         if (!result.success) throw new Error(result.error);
         setSubmitted(true);
+        setMessage("Verification code sent! Please check your email.");
       }
     } catch (err: any) {
       console.error("Auth Tunnel Failed:", err);
@@ -49,6 +53,29 @@ export default function AuthPage() {
       setMessage(err.message || "Connection refused by secure node.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsVerifying(true);
+    setMessage(null);
+    setIsError(false);
+
+    try {
+      const result = await verifyOtpAction({ email, token: otp });
+      if (!result.success) throw new Error(result.error);
+      
+      setMessage("Identity Verified! Redirecting to Hub...");
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1500);
+    } catch (err: any) {
+      console.error("OTP Verification Failed:", err);
+      setIsError(true);
+      setMessage(err.message || "Invalid or expired verification code.");
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -63,13 +90,53 @@ export default function AuthPage() {
               <Mail className="w-10 h-10 animate-pulse" />
             </div>
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight">Check your Inbox</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Identity Verification</h1>
               <p className="text-zinc-500 text-sm font-medium leading-relaxed">
-                A secure initialization link has been sent to <span className="text-white font-bold">{email}</span>. Click it to verify your node.
+                Enter the 6-digit cryptographic code sent to <span className="text-white font-bold">{email}</span> to activate your node.
               </p>
             </div>
 
-            <div className="pt-8">
+            <form onSubmit={handleVerifyOtp} className="w-full space-y-6 bg-zinc-900/40 backdrop-blur-3xl border border-white/5 p-8 rounded-[2.5rem]">
+               <div className="space-y-4">
+                  <div className="space-y-2 group">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-600 group-focus-within:text-amber-400 transition-colors ml-1">Verification Code</label>
+                    <div className="relative">
+                      <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={18} />
+                      <input 
+                        type="text" 
+                        placeholder="123456"
+                        maxLength={6}
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                        className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-center text-2xl font-mono tracking-[0.5em] focus:outline-none focus:ring-1 focus:ring-amber-400/30 transition-all placeholder:text-zinc-800 placeholder:tracking-normal"
+                        required
+                      />
+                    </div>
+                  </div>
+               </div>
+
+               {message && (
+                  <div className={`p-4 rounded-xl flex items-center gap-3 animate-in fade-in zoom-in-95 duration-300 ${isError ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
+                    {isError ? <AlertCircle size={16} /> : <CheckCircle2 size={16} />}
+                    <p className="text-xs font-medium">{message}</p>
+                  </div>
+                )}
+
+               <button 
+                disabled={isVerifying || otp.length < 6}
+                type="submit"
+                className="w-full py-5 bg-white text-black font-black uppercase text-xs tracking-[0.3em] rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_20px_40px_-10px_rgba(255,255,255,0.1)] flex items-center justify-center gap-2 group/btn disabled:opacity-50"
+               >
+                  {isVerifying ? <Loader2 className="animate-spin" size={18} /> : (
+                    <>
+                      Verify Node Identity
+                      <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
+               </button>
+            </form>
+
+            <div className="pt-4">
               <button 
                 onClick={() => setSubmitted(false)}
                 className="text-[10px] font-black text-zinc-600 uppercase tracking-widest hover:text-white transition-colors"
@@ -98,13 +165,13 @@ export default function AuthPage() {
           {/* Mode Switcher */}
           <div className="bg-zinc-900/80 p-1.5 rounded-2xl flex items-center gap-1 border border-white/5 w-64 shadow-2xl">
             <button 
-              onClick={() => setIsLogin(true)}
+              onClick={() => { setIsLogin(true); setSubmitted(false); }}
               className={`flex-1 py-2 text-[9px] font-black uppercase tracking-[0.2em] rounded-xl transition-all ${isLogin ? 'bg-amber-400 text-black shadow-lg shadow-amber-400/20' : 'text-zinc-500 hover:text-white'}`}
             >
               Sign In
             </button>
             <button 
-              onClick={() => setIsLogin(false)}
+              onClick={() => { setIsLogin(false); setSubmitted(false); }}
               className={`flex-1 py-2 text-[9px] font-black uppercase tracking-[0.2em] rounded-xl transition-all ${!isLogin ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20' : 'text-zinc-500 hover:text-white'}`}
             >
               Initialize Node

@@ -23,6 +23,19 @@ export async function signUpAction(formData: any) {
   return { success: true, data };
 }
 
+export async function verifyOtpAction(formData: any) {
+  const { email, token } = formData;
+  
+  const { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: 'signup',
+  });
+
+  if (error) return { success: false, error: error.message };
+  return { success: true, data };
+}
+
 export async function signInAction(formData: any) {
   const { email, password } = formData;
   
