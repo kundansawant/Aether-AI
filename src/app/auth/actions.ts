@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
 
 // Server-side initialization (safe from browser extensions)
 const supabaseUrl = 'https://gxcbzschfvajyiwdtcqq.supabase.co';
@@ -21,7 +22,13 @@ export async function signUpAction(formData: any) {
     });
 
     if (error) return { success: false, error: error.message };
-    // Return session so we can sync it with the browser
+
+    // SET BROWSER COOKIES: CRITICAL FOR REDIRECT
+    if (data.session) {
+      cookies().set('sb-access-token', data.session.access_token, { path: '/', httpOnly: true, secure: true });
+      cookies().set('sb-refresh-token', data.session.refresh_token, { path: '/', httpOnly: true, secure: true });
+    }
+
     return { success: true, session: data.session };
   } catch (err: any) {
     return { success: false, error: "Node Identity Initialization Failed: " + (err.message || "Unknown Error") };
@@ -38,7 +45,13 @@ export async function signInAction(formData: any) {
     });
 
     if (error) return { success: false, error: error.message };
-    // Return session so we can sync it with the browser
+
+    // SET BROWSER COOKIES: CRITICAL FOR REDIRECT
+    if (data.session) {
+      cookies().set('sb-access-token', data.session.access_token, { path: '/', httpOnly: true, secure: true });
+      cookies().set('sb-refresh-token', data.session.refresh_token, { path: '/', httpOnly: true, secure: true });
+    }
+
     return { success: true, session: data.session };
   } catch (err: any) {
     return { success: false, error: "Node Authentication Refused: " + (err.message || "Unknown Error") };
