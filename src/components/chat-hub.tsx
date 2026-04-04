@@ -177,7 +177,7 @@ export default function ChatHub({ session }: { session: any }) {
 
   return (
     <div className="flex flex-col h-screen bg-[#0d0d0d] overflow-hidden text-[15px]">
-      <Navbar />
+      <Navbar session={session} />
       <main className="flex-1 flex flex-col pt-20 overflow-y-auto custom-scrollbar">
         <div ref={scrollContainerRef} className="flex-1 px-6 py-6 relative">
           {messages.length === 0 ? (
