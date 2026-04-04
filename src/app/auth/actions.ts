@@ -11,25 +11,13 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export async function signUpAction(formData: any) {
   const { email, password, origin } = formData;
   
+  // Note: For this to work instantly, you MUST disable "Confirm Email" in Supabase Auth Settings.
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       emailRedirectTo: `${origin}/auth/callback`,
     },
-  });
-
-  if (error) return { success: false, error: error.message };
-  return { success: true, data };
-}
-
-export async function verifyOtpAction(formData: any) {
-  const { email, token } = formData;
-  
-  const { data, error } = await supabase.auth.verifyOtp({
-    email,
-    token,
-    type: 'signup',
   });
 
   if (error) return { success: false, error: error.message };
