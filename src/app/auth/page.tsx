@@ -23,6 +23,7 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isVerifyingManual, setIsVerifyingManual] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -79,7 +80,7 @@ export default function AuthPage() {
     }
   };
 
-  if (submitted) {
+  if (submitted || isVerifyingManual) {
     return (
       <div className="min-h-screen bg-[#0d0d0d] text-white flex flex-col items-center justify-center p-6 selection:bg-amber-400 selection:text-black font-sans">
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-amber-400/5 rounded-full blur-[120px] pointer-events-none" />
@@ -92,12 +93,31 @@ export default function AuthPage() {
             <div className="space-y-2">
               <h1 className="text-3xl font-bold tracking-tight">Identity Verification</h1>
               <p className="text-zinc-500 text-sm font-medium leading-relaxed">
-                Enter the 6-digit cryptographic code sent to <span className="text-white font-bold">{email}</span> to activate your node.
+                {isVerifyingManual 
+                  ? "Enter your Node-Email and the 6-digit cryptographic code sent to you."
+                  : `Enter the 6-digit cryptographic code sent to ${email} to activate your node.`
+                }
               </p>
             </div>
 
             <form onSubmit={handleVerifyOtp} className="w-full space-y-6 bg-zinc-900/40 backdrop-blur-3xl border border-white/5 p-8 rounded-[2.5rem]">
                <div className="space-y-4">
+                  {isVerifyingManual && (
+                    <div className="space-y-2 group">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-600 group-focus-within:text-amber-400 transition-colors ml-1">Node Email</label>
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600" size={18} />
+                        <input 
+                          type="email" 
+                          placeholder="name@provider.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-amber-400/30 transition-all placeholder:text-zinc-700"
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
                   <div className="space-y-2 group">
                     <label className="text-[10px] font-black uppercase tracking-widest text-zinc-600 group-focus-within:text-amber-400 transition-colors ml-1">Verification Code</label>
                     <div className="relative">
@@ -123,7 +143,7 @@ export default function AuthPage() {
                 )}
 
                <button 
-                disabled={isVerifying || otp.length < 6}
+                disabled={isVerifying || otp.length < 6 || (isVerifyingManual && !email)}
                 type="submit"
                 className="w-full py-5 bg-white text-black font-black uppercase text-xs tracking-[0.3em] rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_20px_40px_-10px_rgba(255,255,255,0.1)] flex items-center justify-center gap-2 group/btn disabled:opacity-50"
                >
@@ -138,10 +158,10 @@ export default function AuthPage() {
 
             <div className="pt-4">
               <button 
-                onClick={() => setSubmitted(false)}
+                onClick={() => { setSubmitted(false); setIsVerifyingManual(false); }}
                 className="text-[10px] font-black text-zinc-600 uppercase tracking-widest hover:text-white transition-colors"
               >
-                Entered wrong email? Change identity
+                Back to Auth Portal
               </button>
             </div>
           </div>
@@ -242,6 +262,15 @@ export default function AuthPage() {
               )}
             </button>
           </form>
+
+          <div className="pt-4 border-t border-white/5 text-center">
+            <button 
+              onClick={() => { setIsVerifyingManual(true); setMessage(null); }}
+              className="text-[10px] font-black text-amber-400 hover:text-white uppercase tracking-widest transition-all"
+            >
+              Already have a code? Verify Secure Node
+            </button>
+          </div>
         </div>
 
         <div className="text-center">
