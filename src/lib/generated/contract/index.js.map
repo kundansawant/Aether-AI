@@ -1,0 +1,8 @@
+{
+  "version": 3,
+  "file": "index.js",
+  "sourceRoot": "../../../../contracts/",
+  "sources": ["marketplace.compact"],
+  "names": [],
+  "mappings": ";;;;;;;;;;;;;;;EAAA;;;;;;;;;;MAQA,AAAA,aAEC;;OAAA;MAED,AAAA,aAEC;;OAAA;MAED,AAAA,iBAEC;;OAAA;;;;GACA;EAnBD;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;GAmBC;EAXD,AAAA,gBAEC,CAF4B,SAAkB,EAAE,UAAmB,EAAE,KAAU,EAAE,UAAmB,gBAEpG;EAED,AAAA,gBAEC,CAF4B,WAAoB,EAAE,MAAe,EAAE,SAAkB,EAAE,YAAqB,gBAE5G;EAED,AAAA,oBAEC,CAFgC,WAAoB,gBAEpD;;;;;;;;;;;;;;;;;;;;;;;EAVD,AAAA,aAEC;;;;UAF4B,SAAkB;UAAE,UAAmB;UAAE,KAAU;UAAE,UAAmB;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2CAAxE,SAAkB;2CAAE,UAAmB;2CAAE,KAAU;2CAAE,UAAmB;GAEpG;EAED,AAAA,aAEC;;;;UAF4B,WAAoB;UAAE,MAAe;UAAE,SAAkB;UAAE,YAAqB;;;;;;;;;;;;;;;;;;;;;;;;;;;;;2CAAhF,WAAoB;2CAAE,MAAe;2CAAE,SAAkB;2CAAE,YAAqB;GAE5G;EAED,AAAA,iBAEC;;;;UAFgC,WAAoB;;;;;;;;+CAApB,WAAoB;GAEpD;;;;"
+}

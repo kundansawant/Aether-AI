@@ -1,0 +1,19 @@
+FROM debian:bookworm-slim
+
+# Install dependencies for downloading and extracting
+RUN apt-get update && apt-get install -y \
+    curl tar xz-utils libsqlite3-dev gzip unzip ca-certificates bash \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and install the Midnight Compact CLI (v0.5.1)
+RUN curl -Ls https://github.com/midnightntwrk/compact/releases/download/compact-v0.5.1/compact-x86_64-unknown-linux-musl.tar.xz | tar -xJ -C /usr/local/bin --strip-components=1
+
+# Set the compact directory and install the specific compiler version
+ENV COMPACT_DIRECTORY=/root/.compact
+RUN compact update 0.30.0
+
+# Set the working directory
+WORKDIR /app
+
+# The command to run the compiler
+ENTRYPOINT ["compact"]

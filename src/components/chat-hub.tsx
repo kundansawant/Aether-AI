@@ -5,32 +5,12 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { 
-  Cpu, 
-  ShieldCheck, 
-  Clock, 
-  Star, 
-  Zap, 
-  Activity, 
-  Lock, 
-  Loader2, 
-  Send, 
-  Upload, 
-  Copy, 
-  Download, 
-  CheckCircle2,
-  ChevronRight,
-  BarChart3,
-  History,
-  Info,
-  ExternalLink,
-  MessageSquare,
-  ArrowRight
-} from "lucide-react";
+import { Cpu, ShieldCheck, Clock, Star, Zap, Activity, Lock, Loader2, Send, Upload, Copy, Download, CheckCircle2, ChevronRight, BarChart3, History, Info, ExternalLink, MessageSquare, ArrowRight } from "lucide-react";
 import { MODELS, Model } from "@/lib/models";
 import { Skeleton, EmptyState } from "@/components/ui-states";
 import { Navbar } from "@/components/navbar";
 import { supabase } from "@/lib/supabase";
+import { midnightService } from "@/lib/midnight_service";
 
 export default function ChatHub({ session }: { session: any }) {
   const searchParams = useSearchParams();
@@ -132,6 +112,20 @@ export default function ChatHub({ session }: { session: any }) {
       const data = await response.json();
       if (data.answer) {
         setStatus("Generating ZK-Proof...");
+        
+        // --- Midnight Integration Start ---
+        if (isPrivate) {
+            try {
+                // Submit the request and result commitment to the Midnight Ledger
+                const commitment = data.proof_details?.hash || "0x_" + Math.random().toString(16).slice(2);
+                await midnightService.submitInferenceRequest(modelId, commitment);
+            } catch (midnightErr) {
+                console.error("🌌 [Midnight] Contract Sync Failed:", midnightErr);
+                // We continue since this is a demo, but log the error
+            }
+        }
+        // --- Midnight Integration End ---
+
         setTimeout(fetchLogs, 1000); 
         const aiMessage = { 
           role: "ai", 
