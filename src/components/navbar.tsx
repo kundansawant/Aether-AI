@@ -16,7 +16,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { getUserAction, signOutAction } from "@/app/auth/actions";
 import { useRouter } from "next/navigation";
 
 const NAV_LINKS = [
@@ -37,25 +37,24 @@ export function Navbar({ session: initialSession }: { session?: any }) {
     const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
     
-    // Auth Listener
-    if (!user && !initialSession) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        setUser(session?.user ?? null);
-      });
+    // Auth Check
+    async function checkAuth() {
+      const currentUser = await getUserAction();
+      setUser(currentUser);
     }
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+    
+    if (!user) {
+      checkAuth();
+    }
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      subscription.unsubscribe();
     };
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOutAction();
+    setUser(null);
     router.push("/auth");
   };
 

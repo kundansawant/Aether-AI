@@ -28,7 +28,7 @@ function MessageSquareIcon({ size, className }: { size?: number, className?: str
   return <Zap size={size} className={className} />;
 }
 
-import { supabase } from "@/lib/supabase";
+import { getInferenceLogsAction } from "./actions";
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -41,26 +41,22 @@ export default function DashboardPage() {
       const savedId = localStorage.getItem("aether_node_id");
       if (savedId) setNodeId(savedId);
       
-      const { data, error } = await supabase
-        .from('inference_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(20);
+      const { success, data, error } = await getInferenceLogsAction();
 
       const timer = setTimeout(() => {
         const storedLogs = JSON.parse(localStorage.getItem("aether_proof_logs") || "[]");
         
-        if (data && data.length > 0) {
-          // Merge Supabase logs with any local ones for the best experience
-          const formattedSupabaseLogs = data.map((log: any) => ({
-            id: log.id.substring(0, 8),
+        if (success && data && data.length > 0) {
+          // Merge MySQL logs with any local ones
+          const formattedLogs = data.map((log: any) => ({
+            id: log.id.toString(),
             model: log.model_name,
             status: log.status,
             time: new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            hash: log.proof_hash,
+            hash: log.proof_hash ? (log.proof_hash.length > 10 ? log.proof_hash.substring(0, 10) + "..." : log.proof_hash) : "N/A",
             type: "Text"
           }));
-          setLogs(formattedSupabaseLogs);
+          setLogs(formattedLogs);
         } else {
           const defaultLogs = [
             { id: "pf-8291", model: "Aether Assistant", status: "Verified", time: "2h ago", hash: "0x72...91a", type: "Text" },

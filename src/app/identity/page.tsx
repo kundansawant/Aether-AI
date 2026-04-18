@@ -17,7 +17,8 @@ import {
   Server,
   Database
 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { upsertIdentityAction, updateIdentityStatusAction } from "./actions";
+import { getUserAction } from "@/app/auth/actions";
 import { Navbar } from "@/components/navbar";
 
 export default function IdentityPage() {
@@ -31,21 +32,15 @@ export default function IdentityPage() {
     async function syncIdentity() {
       const savedActive = localStorage.getItem("aether_node_active") === "true";
       const savedId = localStorage.getItem("aether_node_id");
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getUserAction();
       
       if (savedActive && savedId) {
         setIsNodeActive(true);
         setNodeId(savedId);
         setStep(3);
         
-        // Sync to Supabase with user_id if logged in
-        await supabase
-          .from('identities')
-          .upsert({ 
-            node_id: savedId, 
-            is_active: true,
-            user_id: user?.id || null 
-          }, { onConflict: 'node_id' });
+        // Sync to MySQL with user_id if logged in
+        await upsertIdentityAction(savedId, true);
       }
     }
     syncIdentity();
@@ -72,20 +67,15 @@ export default function IdentityPage() {
     localStorage.setItem("aether_node_active", "true");
     localStorage.setItem("aether_node_id", nodeId);
     
-    // Save to Supabase
-    await supabase
-      .from('identities')
-      .upsert({ node_id: nodeId, is_active: true }, { onConflict: 'node_id' });
+    // Save to MySQL
+    await upsertIdentityAction(nodeId, true);
       
     setStep(3);
   };
 
   const deactivateNode = async () => {
     if (nodeId) {
-      await supabase
-        .from('identities')
-        .update({ is_active: false })
-        .eq('node_id', nodeId);
+      await updateIdentityStatusAction(nodeId, false);
     }
     
     setIsNodeActive(false);

@@ -1,59 +1,111 @@
 "use server";
 
-import { createClient } from '@supabase/supabase-js';
+import { query } from '@/lib/db';
 import { cookies } from 'next/headers';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
-// Server-side initialization (safe from browser extensions)
-const supabaseUrl = 'https://gxcbzschfvajyiwdtcqq.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4Y2J6c2NoZnZhanlpd2R0Y3FxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDcxMzIsImV4cCI6MjA5MDcyMzEzMn0.7Zy2wxLpTNtACUHO4g6dEyu4wZcQVPvZLyjwJZCy7M4';
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
+/**
+ * Handle User Sign Up
+ */
 export async function signUpAction(formData: any) {
   try {
-    const { email, password, origin } = formData;
+    const { email, password } = formData;
     
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${origin}/auth/callback`,
-      },
-    });
-
-    if (error) return { success: false, error: error.message };
-
-    // SET BROWSER COOKIES: CRITICAL FOR REDIRECT
-    if (data.session) {
-      cookies().set('sb-access-token', data.session.access_token, { path: '/', httpOnly: true, secure: true });
-      cookies().set('sb-refresh-token', data.session.refresh_token, { path: '/', httpOnly: true, secure: true });
+    // 1. Check if user already exists
+    const existingUsers = await query('SELECT id FROM users WHERE email = ?', [email]) as any[];
+    if (existingUsers.length > 0) {
+      return { success: false, error: "User already registered" };
     }
 
-    return { success: true, session: data.session };
+    // 2. Hash the password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const userId = crypto.randomUUID();
+
+    // 3. Insert into MySQL
+    await query(
+      'INSERT INTO users (id, email, password) VALUES (?, ?, ?)',
+      [userId, email, hashedPassword]
+    );
+
+    // 4. Create a session cookie (simplified for this migration)
+    const sessionData = JSON.stringify({ id: userId, email });
+    cookies().set('aether-session', sessionData, { 
+      path: '/', 
+      httpOnly: true, 
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 7 // 7 days
+    });
+
+    return { 
+      success: true, 
+      user: { id: userId, email } 
+    };
   } catch (err: any) {
-    return { success: false, error: "Node Identity Initialization Failed: " + (err.message || "Unknown Error") };
+    console.error("Sign Up Error:", err);
+    return { success: false, error: "Database Identity Initialization Failed: " + (err.message || "Unknown Error") };
   }
 }
 
+/**
+ * Handle User Sign In
+ */
 export async function signInAction(formData: any) {
   try {
     const { email, password } = formData;
     
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) return { success: false, error: error.message };
-
-    // SET BROWSER COOKIES: CRITICAL FOR REDIRECT
-    if (data.session) {
-      cookies().set('sb-access-token', data.session.access_token, { path: '/', httpOnly: true, secure: true });
-      cookies().set('sb-refresh-token', data.session.refresh_token, { path: '/', httpOnly: true, secure: true });
+    // 1. Find user by email
+    const users = await query('SELECT * FROM users WHERE email = ?', [email]) as any[];
+    if (users.length === 0) {
+      return { success: false, error: "Invalid credentials" };
     }
 
-    return { success: true, session: data.session };
+    const user = users[0];
+
+    // 2. Verify password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return { success: false, error: "Invalid credentials" };
+    }
+
+    // 3. Create session cookie
+    const sessionData = JSON.stringify({ id: user.id, email: user.email });
+    cookies().set('aether-session', sessionData, { 
+      path: '/', 
+      httpOnly: true, 
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 7 // 7 days
+    });
+
+    return { 
+      success: true, 
+      user: { id: user.id, email: user.email } 
+    };
   } catch (err: any) {
-    return { success: false, error: "Node Authentication Refused: " + (err.message || "Unknown Error") };
+    console.error("Sign In Error:", err);
+    return { success: false, error: "Authentication Refused: " + (err.message || "Unknown Error") };
+  }
+}
+
+/**
+ * Handle Sign Out
+ */
+export async function signOutAction() {
+  cookies().delete('aether-session');
+  return { success: true };
+}
+
+/**
+ * Server Action to get the current user session
+ */
+export async function getUserAction() {
+  const session = cookies().get('aether-session');
+  if (!session) return null;
+  
+  try {
+    return JSON.parse(session.value);
+  } catch {
+    return null;
   }
 }

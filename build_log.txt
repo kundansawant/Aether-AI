@@ -1,0 +1,85 @@
+﻿docker : #0 building with "desktop-linux" instance using 
+docker driver
+At line:1 char:1
++ docker build --progress=plain -t midnight-compact-compiler 
+-f contrac ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (#0 building wit. 
+   ..g docker driver:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+#1 [internal] load build definition from Dockerfile.compact
+#1 transferring dockerfile: 688B 0.0s done
+#1 DONE 0.2s
+
+#2 [internal] load metadata for 
+docker.io/library/debian:bookworm-slim
+#2 ...
+
+#3 [auth] library/debian:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for 
+docker.io/library/debian:bookworm-slim
+#2 DONE 2.2s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B 0.0s done
+#4 DONE 0.1s
+
+#5 [1/6] FROM docker.io/library/debian:bookworm-slim@sha256:f0
+6537653ac770703bc45b4b113475bd402f451e85223f0f2837acbf89ab020a
+#5 resolve docker.io/library/debian:bookworm-slim@sha256:f0653
+7653ac770703bc45b4b113475bd402f451e85223f0f2837acbf89ab020a 
+0.1s done
+#5 DONE 0.1s
+
+#6 [3/6] RUN curl -Ls https://github.com/midnightntwrk/compact
+/releases/download/compact-v0.5.1/compact-x86_64-unknown-linux
+-musl.tar.xz | tar -xJ -C /usr/local/bin --strip-components=1
+#6 CACHED
+
+#7 [2/6] RUN apt-get update && apt-get install -y curl tar 
+xz-utils libsqlite3-dev gzip unzip && rm -rf 
+/var/lib/apt/lists/*
+#7 CACHED
+
+#8 [4/6] RUN compact update
+#8 CACHED
+
+#9 [5/6] RUN compact use 0.30.0
+#9 3.131 error: unrecognized subcommand 'use'
+#9 3.131 
+#9 3.131   tip: some similar subcommands exist: 'self', 'u'
+#9 3.131 
+#9 3.131 Usage: compact [OPTIONS] <COMMAND>
+#9 3.131 
+#9 3.131 For more information, try '--help'.
+#9 ERROR: process "/bin/sh -c compact use 0.30.0" did not 
+complete successfully: exit code: 2
+------
+ > [5/6] RUN compact use 0.30.0:
+3.131 error: unrecognized subcommand 'use'
+3.131 
+3.131   tip: some similar subcommands exist: 'self', 'u'
+3.131 
+3.131 Usage: compact [OPTIONS] <COMMAND>
+3.131 
+3.131 For more information, try '--help'.
+------
+Dockerfile.compact:12
+--------------------
+  10 |     ENV COMPACT_DIRECTORY=/root/.compact
+  11 |     RUN compact update
+  12 | >>> RUN compact use 0.30.0
+  13 |     
+  14 |     # Set the working directory
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c 
+compact use 0.30.0" did not complete successfully: exit code: 
+2
+
+View build details: docker-desktop://dashboard/build/desktop-l
+inux/desktop-linux/8kxkgu25hyg16ez1cyrrt2a8v

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { supabase } from '@/lib/supabase';
+import { query } from '@/lib/db';
 
 /**
  * [1] INPUT GUARD (SECURITY FIRST)
@@ -180,29 +180,30 @@ export async function POST(req: Request) {
     // Layer 6: Output Guard
     const safety = outputGuard(aiResponse);
 
-    // [New] Layer 7: Server-Side Audit Log (Supabase)
+    // [New] Layer 7: Server-Side Audit Log (MySQL)
     try {
-      // For the hackathon submission: We log the activity to the cloud dashboard
       const nodeId = isPrivate ? "private-node-" + proof.id.slice(0,6) : "public-node";
       
-      const { error: logError } = await (supabase as any)
-        .from('inference_logs')
-        .insert({
-          node_id: nodeId,
-          model_id: finalModel,
-          model_name: finalModel.split('/')[1] || finalModel,
-          proof_id: proof.id,
-          proof_hash: proof.hash,
-          safety_score: safety.score,
-          input_text: processedInput.substring(0, 500), // Trim for DB performance
-          output_text: aiResponse.substring(0, 1000),
-          status: "Verified"
-        });
+      await query(
+        `INSERT INTO inference_logs 
+        (node_id, model_id, model_name, proof_id, proof_hash, safety_score, input_text, output_text, status) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          nodeId,
+          finalModel,
+          finalModel.split('/')[1] || finalModel,
+          proof.id,
+          proof.hash,
+          safety.score,
+          processedInput.substring(0, 500),
+          aiResponse.substring(0, 1000),
+          "Verified"
+        ]
+      );
 
-      if (logError) console.error("[Audit] Logging failed:", logError);
-      else console.log(`[Audit] Verified log entry created for Node: ${nodeId}`);
+      console.log(`[Audit] Verified MySQL log entry created for Node: ${nodeId}`);
     } catch (auditErr) {
-      console.error("[Audit] Critical logging failure:", auditErr);
+      console.error("[Audit] Critical MySQL logging failure:", auditErr);
     }
 
     // Layer 8: Response Formatter
