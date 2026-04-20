@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { signInAction, signUpAction } from "./actions";
-import { supabase } from "@/lib/supabase";
+// Removed supabase import - migrated to MySQL Auth
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
@@ -40,24 +40,14 @@ export default function AuthPage() {
         if (!result) throw new Error("Secure Node Communication Interrupted.");
         if (!result.success) throw new Error(result.error);
         
-        // SYNC BROWSER SESSION: This is critical for Fast-Auth redirect
-        if (result.session) {
-          const { access_token, refresh_token } = result.session;
-          await supabase.auth.setSession({ access_token, refresh_token });
-        }
-        
+        // Browser session is now handled via 'aether-session' HTTP-only cookie automatically
         window.location.href = "/";
       } else {
         const result = await signUpAction(formData);
         if (!result) throw new Error("Initialize Identity Request Delayed.");
         if (!result.success) throw new Error(result.error);
         
-        // SYNC BROWSER SESSION: Instant login after signup
-        if (result.session) {
-          const { access_token, refresh_token } = result.session;
-          await supabase.auth.setSession({ access_token, refresh_token });
-        }
-        
+        // Browser session is now handled via 'aether-session' HTTP-only cookie automatically
         setMessage("Identity Created! Activating Node...");
         setTimeout(() => {
           window.location.href = "/";

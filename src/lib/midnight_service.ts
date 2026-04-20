@@ -1,9 +1,11 @@
-import { 
-  type DAppConnectorApi,
-  type WalletState 
-} from '@midnight-ntwrk/dapp-connector-api';
-// Generated after successful compilation
-import { pureCircuits } from './generated/contract';
+// Types removed temporarily to resolve SDK mismatch during migration
+// import { 
+//   type DAppConnectorApi,
+//   type WalletState 
+// } from '@midnight-ntwrk/dapp-connector-api';
+// Temporary bypass for local MySQL testing
+// import { pureCircuits } from './generated/contract';
+const pureCircuits: any = {};
 
 /**
  * Helper to convert strings/hex to Uint8Array(32) for Compact circuits

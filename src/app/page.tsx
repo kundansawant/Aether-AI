@@ -4,18 +4,17 @@ import ChatHub from "@/components/chat-hub";
 
 export default function Page() {
   const cookieStore = cookies();
-  const token = cookieStore.get("sb-access-token");
+  const token = cookieStore.get("aether-session");
 
-  // SERVER-SIDE PROTECTION: This happens BEFORE any HTML is sent to the browser.
-  // It completely eliminates the "Flash of Dashboard" and the redirect loop.
-  if (!token) {
-    redirect("/auth");
+  let sessionData = null;
+  if (token) {
+    try {
+      sessionData = JSON.parse(token.value);
+    } catch (e) {}
   }
 
-  // Construct a minimal session object for the client to hydrate with
   const session = {
-    access_token: token.value,
-    refresh_token: cookieStore.get("sb-refresh-token")?.value || ""
+    user: sessionData
   };
 
   return <ChatHub session={session} />;

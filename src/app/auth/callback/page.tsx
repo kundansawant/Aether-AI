@@ -2,31 +2,16 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+// Removed supabase import
 import { Loader2 } from "lucide-react";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Supabase will automatically handle the #access_token fragment 
-    // and set the session cookie when the client initialized.
-    const checkSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (session) {
-        // Identity Verified! Moving to Secure Hub
-        router.push("/");
-      } else if (error) {
-        console.error("Callback Verification Failed:", error.message);
-        router.push("/auth?error=verification_failed");
-      } else {
-        // Fallback: Wait a moment for the hash to be processed
-        setTimeout(() => router.push("/"), 2000);
-      }
-    };
-
-    checkSession();
+    // Session is now handled via server-side cookies
+    // This callback is currently just a placeholder redirect
+    router.push("/");
   }, [router]);
 
   return (

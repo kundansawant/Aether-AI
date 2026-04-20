@@ -9,17 +9,16 @@ import { Cpu, ShieldCheck, Clock, Star, Zap, Activity, Lock, Loader2, Send, Uplo
 import { MODELS, Model } from "@/lib/models";
 import { Skeleton, EmptyState } from "@/components/ui-states";
 import { Navbar } from "@/components/navbar";
-import { supabase } from "@/lib/supabase";
 import { midnightService } from "@/lib/midnight_service";
 
 export default function ChatHub({ session }: { session: any }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const modelId = searchParams.get("model") || "minimax/minimax-m2.5:free";
-  
+
   const [model, setModel] = useState<Model | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Inference State
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
@@ -30,7 +29,7 @@ export default function ChatHub({ session }: { session: any }) {
   const [activeNodeId, setActiveNodeId] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  
+
   const [logs, setLogs] = useState<any[]>([]);
 
   const scrollToBottom = () => {
@@ -41,13 +40,11 @@ export default function ChatHub({ session }: { session: any }) {
 
   const fetchLogs = async () => {
     try {
-      const { data, error } = await supabase
-        .from('inference_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
-      
-      if (data) setLogs(data);
+      const response = await fetch('/api/logs');
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setLogs(data);
+      }
     } catch (err) {
       console.error("Failed to fetch node logs:", err);
     }
@@ -60,20 +57,9 @@ export default function ChatHub({ session }: { session: any }) {
 
   useEffect(() => {
     // If the server provided a session, synchronize the browser's local storage
-    if (session) {
-      const syncSession = async () => {
-        const { data: { session: existingSession } } = await supabase.auth.getSession();
-        if (!existingSession) {
-          await supabase.auth.setSession({
-            access_token: session.access_token,
-            refresh_token: session.refresh_token
-          });
-        }
-        fetchLogs();
-      };
-      syncSession();
-    } else {
-      router.push("/auth");
+    // Session sync is now handled purely server-side with cookies
+    if (session && session.user) {
+      fetchLogs();
     }
 
     const savedActive = localStorage.getItem("aether_node_active") === "true";
@@ -94,6 +80,10 @@ export default function ChatHub({ session }: { session: any }) {
   }, [modelId, router, session]);
 
   const handleRun = async () => {
+    if (!session || !session.user) {
+      router.push("/auth");
+      return;
+    }
     if (!input || !model) return;
     const userMessage = { role: "user", content: input };
     setMessages(prev => [...prev, userMessage]);
@@ -102,7 +92,7 @@ export default function ChatHub({ session }: { session: any }) {
     setInput("");
     setIsRunning(true);
     setStatus("Initiating Secure Compute Node...");
-    
+
     try {
       const response = await fetch('/api/inference', {
         method: 'POST',
@@ -112,23 +102,23 @@ export default function ChatHub({ session }: { session: any }) {
       const data = await response.json();
       if (data.answer) {
         setStatus("Generating ZK-Proof...");
-        
+
         // --- Midnight Integration Start ---
         if (isPrivate) {
-            try {
-                // Submit the request and result commitment to the Midnight Ledger
-                const commitment = data.proof_details?.hash || "0x_" + Math.random().toString(16).slice(2);
-                await midnightService.submitInferenceRequest(modelId, commitment);
-            } catch (midnightErr) {
-                console.error("🌌 [Midnight] Contract Sync Failed:", midnightErr);
-                // We continue since this is a demo, but log the error
-            }
+          try {
+            // Submit the request and result commitment to the Midnight Ledger
+            const commitment = data.proof_details?.hash || "0x_" + Math.random().toString(16).slice(2);
+            await midnightService.submitInferenceRequest(modelId, commitment);
+          } catch (midnightErr) {
+            console.error("🌌 [Midnight] Contract Sync Failed:", midnightErr);
+            // We continue since this is a demo, but log the error
+          }
         }
         // --- Midnight Integration End ---
 
-        setTimeout(fetchLogs, 1000); 
-        const aiMessage = { 
-          role: "ai", 
+        setTimeout(fetchLogs, 1000);
+        const aiMessage = {
+          role: "ai",
           content: data.answer,
           proof: data.proof_details,
           metadata: {
@@ -200,9 +190,8 @@ export default function ChatHub({ session }: { session: any }) {
             <div className="max-w-3xl mx-auto w-full space-y-12 pb-10">
               {messages.map((msg, i) => (
                 <div key={i} className="flex gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 group">
-                  <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center border transition-all ${
-                    msg.role === "user" ? "bg-zinc-800 border-zinc-700 text-zinc-400" : "bg-primary border-primary text-primary-foreground shadow-[0_0_20px_rgba(var(--primary),0.2)]"
-                  }`}>
+                  <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center border transition-all ${msg.role === "user" ? "bg-zinc-800 border-zinc-700 text-zinc-400" : "bg-primary border-primary text-primary-foreground shadow-[0_0_20px_rgba(var(--primary),0.2)]"
+                    }`}>
                     {msg.role === "user" ? <div className="font-bold text-[10px]">ME</div> : <Cpu size={14} />}
                   </div>
                   <div className="flex flex-col flex-1 space-y-4 pt-1">
@@ -224,7 +213,7 @@ export default function ChatHub({ session }: { session: any }) {
               ))}
               {isRunning && (
                 <div className="flex items-center gap-3 text-[10px] font-bold text-primary/60 uppercase tracking-widest ml-14 animate-pulse">
-                   <Loader2 size={12} className="animate-spin" /> {status}
+                  <Loader2 size={12} className="animate-spin" /> {status}
                 </div>
               )}
             </div>
@@ -235,7 +224,7 @@ export default function ChatHub({ session }: { session: any }) {
           <div className="max-w-3xl mx-auto space-y-4">
             <div className="relative bg-zinc-900/40 backdrop-blur-3xl border border-white/5 rounded-[2rem] shadow-2xl transition-all focus-within:border-primary/20 group">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center">
-                <button 
+                <button
                   onClick={() => setIsPrivate(!isPrivate)}
                   className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all ${isPrivate ? "bg-amber-400 text-black shadow-lg shadow-amber-400/20" : "bg-white/5 text-zinc-500 hover:text-white"}`}
                 >
@@ -262,53 +251,7 @@ export default function ChatHub({ session }: { session: any }) {
           </div>
         </div>
 
-        {logs.length > 0 && (
-          <div className="max-w-4xl mx-auto w-full px-6 py-20 border-t border-white/5 space-y-10">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                   <BarChart3 className="text-amber-400" size={18} /> Verifiable Identity Audit
-                </h3>
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mt-1">Real-time Cloud Sync Proofs</p>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Network Live</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4 pb-20">
-              {logs.map((log) => (
-                <div key={log.id} className="group flex items-center gap-6 p-6 bg-zinc-900/20 border border-white/5 rounded-3xl hover:bg-zinc-900/40 hover:border-white/10 transition-all duration-300">
-                  <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-zinc-500 group-hover:text-amber-400 transition-colors">
-                    <History size={18} />
-                  </div>
-                  <div className="flex-1 grid grid-cols-4 gap-8">
-                    <div className="flex flex-col gap-1">
-                      <p className="text-[9px] font-black text-zinc-700 uppercase tracking-widest">Node</p>
-                      <p className="text-xs font-bold text-zinc-300 truncate font-mono">{log.node_id}</p>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <p className="text-[9px] font-black text-zinc-700 uppercase tracking-widest">Model</p>
-                      <p className="text-xs font-bold text-zinc-300 truncate">{log.model_name}</p>
-                    </div>
-                    <div className="flex flex-col gap-1 col-span-2">
-                       <p className="text-[9px] font-black text-zinc-700 uppercase tracking-widest">Integrity Proof</p>
-                       <p className="text-[10px] font-mono text-emerald-400/70 truncate bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/10">{log.proof_hash}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1.5 bg-emerald-500/5 px-3 py-1 rounded-full border border-emerald-500/10">
-                      <CheckCircle2 size={12} /> Verified
-                    </span>
-                    <span className="text-[9px] font-bold text-zinc-700 uppercase tracking-widest">
-                       {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+
       </main>
 
       {showProofModal && selectedProof && (
@@ -316,11 +259,11 @@ export default function ChatHub({ session }: { session: any }) {
           <div className="absolute inset-0" onClick={() => setShowProofModal(false)}></div>
           <div className="relative w-full max-w-xl bg-[#080808] border border-white/10 rounded-[3.5rem] p-12 space-y-10 shadow-2xl">
             <div className="flex justify-between items-start">
-               <div className="flex gap-5">
-                  <div className="w-14 h-14 bg-emerald-400/10 rounded-2xl flex items-center justify-center text-emerald-400 border border-emerald-400/20"><ShieldCheck size={28} /></div>
-                  <div><h3 className="text-2xl font-bold text-white">Verification Center</h3><p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest mt-1">Proof Sequence Alpha</p></div>
-               </div>
-               <button onClick={() => setShowProofModal(false)} className="text-zinc-600 hover:text-white"><ChevronRight size={22} className="rotate-180" /></button>
+              <div className="flex gap-5">
+                <div className="w-14 h-14 bg-emerald-400/10 rounded-2xl flex items-center justify-center text-emerald-400 border border-emerald-400/20"><ShieldCheck size={28} /></div>
+                <div><h3 className="text-2xl font-bold text-white">Verification Center</h3><p className="text-[10px] text-zinc-600 uppercase font-black tracking-widest mt-1">Proof Sequence Alpha</p></div>
+              </div>
+              <button onClick={() => setShowProofModal(false)} className="text-zinc-600 hover:text-white"><ChevronRight size={22} className="rotate-180" /></button>
             </div>
             <div className="space-y-6">
               <div className="p-8 bg-white/[0.01] border border-white/5 rounded-[2.5rem] space-y-4">
